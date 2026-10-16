@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#eaf2f8">
+  <title>Frame — Movie Finder</title>
+  <style>
+    :root { color-scheme:light; --ink:#17324a; --muted:#73869a; --line:#dce6ee; --blue:#2878a8; --blue-dark:#1f5f88; --coral:#ed765e; --paper:#eaf2f8; --white:#fff; }
+    * { box-sizing:border-box }
+    body { margin:0; min-height:100vh; padding:28px 22px 42px; background:linear-gradient(135deg,#eef5fa 0%,#e7f0f7 55%,#f6f0eb 100%); color:var(--ink); font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; }
+    button { font:inherit }
+    .shell { width:min(100%,1180px); margin:0 auto; }
+    .topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:34px; }
+    .brand { display:flex; gap:11px; align-items:center; font-size:14px; font-weight:800; letter-spacing:.02em; }
+    .brand-mark { width:37px; height:37px; display:grid; place-items:center; border-radius:11px; color:#fff; background:var(--blue); box-shadow:0 7px 18px #2878a833; font-size:18px; }
+    .top-note { color:var(--muted); font-size:12px; }
+    .hero { display:flex; justify-content:space-between; align-items:flex-end; gap:20px; margin:0 0 25px; }
+    .eyebrow { color:var(--blue); text-transform:uppercase; font-size:10px; font-weight:800; letter-spacing:.16em; }
+    h1 { margin:8px 0 8px; font-size:clamp(34px,5vw,50px); line-height:1.04; letter-spacing:-.055em; }
+    .hero p { color:var(--muted); margin:0; font-size:14px; line-height:1.55; }
+    .hero-badge { border:1px solid #d7e4ec; background:#ffffffa8; padding:10px 13px; border-radius:999px; color:#526b81; font-size:11px; white-space:nowrap; }
+    .workspace { display:grid; grid-template-columns:270px minmax(0,1fr); gap:19px; align-items:start; }
+    .filters,.results { background:var(--white); border:1px solid #e0e9ef; border-radius:19px; box-shadow:0 16px 40px #234f6810; }
+    .filters { padding:20px 18px 18px; position:sticky; top:18px; }
+    .filter-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; }
+    .filter-head h2 { margin:0; font-size:14px; }
+    .spark { color:var(--coral); }
+    .filter-group { padding:15px 0; border-top:1px solid #edf1f4; }
+    .filter-group:first-child { border-top:0; }
+    .filter-title { margin:0 0 10px; display:flex; justify-content:space-between; color:#466179; font-size:11px; font-weight:760; }
+    .filter-hint { color:#9aa9b7; font-weight:500; }
+    .chip-list { display:flex; flex-wrap:wrap; gap:7px; }
+    .chip { border:1px solid #dce6ed; background:#fff; color:#526b81; padding:7px 9px; border-radius:8px; font-size:10px; cursor:pointer; transition:all .14s; }
+    .chip:hover { border-color:#8fb9d0; }
+    .chip[aria-pressed="true"] { color:#fff; background:var(--blue); border-color:var(--blue); box-shadow:0 3px 9px #2878a822; }
+    .runtime { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
+    .runtime button { border:1px solid #dce6ed; background:#fff; color:#526b81; border-radius:8px; padding:8px 3px; font-size:10px; cursor:pointer; }
+    .runtime button[aria-pressed="true"] { color:var(--blue-dark); background:#e8f3f9; border-color:#83b4cf; font-weight:700; }
+    .find { width:100%; border:0; border-radius:11px; padding:12px 14px; background:var(--coral); color:white; font-size:12px; font-weight:750; cursor:pointer; box-shadow:0 6px 14px #ed765e33; transition:transform .15s,filter .15s; }
+    .find:hover { transform:translateY(-1px); filter:brightness(.97); }
+    .filter-foot { color:#91a0ad; font-size:9px; line-height:1.5; margin:11px 1px 0; }
+    .results { min-height:500px; padding:20px; }
+    .results-top { display:flex; justify-content:space-between; align-items:center; gap:14px; padding:2px 2px 17px; }
+    .results-top h2 { margin:0; font-size:17px; letter-spacing:-.02em; }
+    .results-top p { color:var(--muted); margin:5px 0 0; font-size:11px; }
+    .hide-seen { display:flex; align-items:center; gap:7px; border:1px solid var(--line); background:white; padding:8px 10px; border-radius:9px; color:#5f7488; font-size:10px; cursor:pointer; white-space:nowrap; }
+    .hide-seen[aria-pressed="true"] { border-color:#80aec9; background:#edf6fa; color:var(--blue-dark); }
+    .movie-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:13px; }
+    .movie { min-width:0; overflow:hidden; border:1px solid #e5ecf1; border-radius:14px; background:#fff; transition:transform .16s,box-shadow .16s; }
+    .movie:hover { transform:translateY(-2px); box-shadow:0 10px 25px #234f6814; }
+    .poster { height:110px; padding:14px; position:relative; overflow:hidden; display:flex; justify-content:space-between; align-items:flex-end; color:white; }
+    .poster::before,.poster::after { content:""; position:absolute; border-radius:50%; background:#ffffff18; }
+    .poster::before { width:145px; height:145px; right:-26px; top:-75px; }
+    .poster::after { width:74px; height:74px; right:43px; top:24px; }
+    .poster.tone-ocean { background:linear-gradient(120deg,#135d84,#3ca3b3); }
+    .poster.tone-sunset { background:linear-gradient(120deg,#a94c50,#f29b62); }
+    .poster.tone-night { background:linear-gradient(120deg,#313b6e,#9363a9); }
+    .poster.tone-forest { background:linear-gradient(120deg,#315d55,#9aaf6c); }
+    .poster.tone-rose { background:linear-gradient(120deg,#8a4c67,#e19b9b); }
+    .poster.tone-gold { background:linear-gradient(120deg,#8a6732,#dbad5e); }
+    .poster-icon { position:relative; z-index:1; font-size:28px; filter:drop-shadow(0 2px 6px #0003); }
+    .poster-label { position:relative; z-index:1; font-size:9px; font-weight:750; letter-spacing:.12em; text-transform:uppercase; text-align:right; }
+    .movie-info { padding:12px 13px 13px; }
+    .movie-title-row { display:flex; align-items:flex-start; justify-content:space-between; gap:8px; }
+    .movie h3 { margin:0; font-size:13px; line-height:1.3; }
+    .movie-meta { color:#8494a2; font-size:10px; white-space:nowrap; margin-top:2px; }
+    .reason { margin:8px 0 10px; min-height:31px; color:#647b8d; font-size:10px; line-height:1.5; }
+    .tags { display:flex; gap:5px; flex-wrap:wrap; }
+    .tag { background:#edf4f8; color:#557187; border-radius:5px; padding:4px 6px; font-size:9px; }
+    .card-bottom { display:flex; justify-content:space-between; align-items:center; gap:7px; margin-top:12px; padding-top:10px; border-top:1px solid #edf1f4; }
+    .match { color:var(--blue); font-size:9px; font-weight:750; }
+    .watched { border:0; background:transparent; color:#8293a1; padding:4px 0 4px 5px; font-size:9px; cursor:pointer; }
+    .watched:hover { color:var(--coral); }
+    .empty { grid-column:1/-1; padding:64px 18px; text-align:center; color:var(--muted); }
+    .empty b { display:block; margin-bottom:8px; color:var(--ink); font-size:15px; }
+    .empty span { font-size:12px; }
+    .footer { margin:16px 3px 0; color:#8da0ae; font-size:10px; text-align:right; }
+    button:focus-visible { outline:3px solid #ee927b; outline-offset:2px; }
+    @media (max-width:800px) { body { padding:19px 14px 32px; } .workspace { grid-template-columns:1fr; } .filters { position:static; } .filter-columns { display:grid; grid-template-columns:1fr 1fr; gap:0 18px; } .filter-group:nth-child(-n+2) { border-top:0; } .results { min-height:0; } }
+    @media (max-width:540px) { .topbar { margin-bottom:24px; } .top-note { font-size:10px; } .hero { display:block; } .hero-badge { display:inline-block; margin-top:13px; } .filter-columns { grid-template-columns:1fr; } .filter-group:nth-child(2) { border-top:1px solid #edf1f4; } .results { padding:14px; } .results-top { align-items:flex-start; } .results-top h2 { font-size:15px; } .hide-seen { padding:7px; font-size:9px; } .movie-grid { grid-template-columns:1fr; } .poster { height:95px; } }
+    @media (prefers-reduced-motion:reduce) { *,*::before,*::after { scroll-behavior:auto!important; transition:none!important; } }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar"><div class="brand"><span class="brand-mark" aria-hidden="true">▣</span><span>FRAME <span style="color:#90a5b6;font-weight:500">/ movie finder</span></span></div><div class="top-note">A little help choosing tonight’s movie</div></header>
+    <section class="hero" aria-labelledby="pageTitle"><div><div class="eyebrow">Your next movie night</div><h1 id="pageTitle">Find a film that fits.</h1><p>Pick a few things you’re in the mood for. I’ll find a good match from the collection.</p></div><div class="hero-badge">✦ &nbsp; Thoughtful picks, no endless scrolling</div></section>
+
+    <div class="workspace">
+      <aside class="filters" aria-label="Recommendation preferences">
+        <div class="filter-head"><h2><span class="spark">✳</span> &nbsp; Your preferences</h2></div>
+        <div class="filter-columns">
+          <section class="filter-group"><h3 class="filter-title">Genres <span class="filter-hint">pick any</span></h3><div class="chip-list" id="genreChoices"></div></section>
+          <section class="filter-group"><h3 class="filter-title">Tonight’s mood <span class="filter-hint">pick any</span></h3><div class="chip-list" id="moodChoices"></div></section>
+          <section class="filter-group"><h3 class="filter-title">Runtime</h3><div class="runtime" id="runtimeChoices"></div></section>
+        </div>
+        <button class="find" type="button" id="findButton">Find my next film &nbsp; →</button>
+        <p class="filter-foot">Your picks are matched to film genres and themes. Genre matches count a little more than mood matches.</p>
+      </aside>
+
+      <section class="results" aria-labelledby="resultsTitle">
+        <div class="results-top"><div><h2 id="resultsTitle">Picked for you</h2><p id="resultSummary" aria-live="polite"></p></div><button type="button" class="hide-seen" id="hideSeen" aria-pressed="false">◉ &nbsp; Hide seen</button></div>
+        <div class="movie-grid" id="movieGrid" aria-live="polite"></div>
+      </section>
+    </div>
+    <div class="footer">A small content-based recommendation demo</div>
+  </main>
+  <script>
+    "use strict";
+    const genreOptions = ["Sci-Fi", "Comedy", "Drama", "Adventure", "Animation", "Romance", "Thriller", "Mystery"];
+    const moodOptions = ["Imaginative", "Thoughtful", "Uplifting", "Cozy", "Funny", "Tense"];
+    const runtimeOptions = [{id:"any",label:"Any"},{id:"short",label:"Under 2h"},{id:"long",label:"Over 2h"}];
+    const movies = [
+      {title:"Arrival",year:2016,minutes:116,genres:["Sci-Fi","Drama"],moods:["Thoughtful","Imaginative"],icon:"◉",tone:"ocean",description:"A linguist works to understand a mysterious arrival on Earth."},
+      {title:"The Martian",year:2015,minutes:144,genres:["Sci-Fi","Adventure","Comedy"],moods:["Uplifting","Funny","Imaginative"],icon:"✦",tone:"sunset",description:"An astronaut relies on ingenuity and humor to survive on Mars."},
+      {title:"Interstellar",year:2014,minutes:169,genres:["Sci-Fi","Adventure","Drama"],moods:["Imaginative","Thoughtful"],icon:"✧",tone:"night",description:"A journey through space puts family and humanity in focus."},
+      {title:"Spider-Man: Into the Spider-Verse",year:2018,minutes:117,genres:["Animation","Adventure"],moods:["Imaginative","Uplifting","Funny"],icon:"⟡",tone:"ocean",description:"A teenager discovers that being a hero comes in many styles."},
+      {title:"Paddington 2",year:2017,minutes:104,genres:["Comedy","Adventure"],moods:["Cozy","Uplifting","Funny"],icon:"♧",tone:"gold",description:"A kind bear sets out to find the perfect gift for his aunt."},
+      {title:"Knives Out",year:2019,minutes:130,genres:["Mystery","Comedy"],moods:["Tense","Funny"],icon:"⌕",tone:"forest",description:"A detective untangles a family mystery full of sharp turns."},
+      {title:"The Grand Budapest Hotel",year:2014,minutes:99,genres:["Comedy","Adventure"],moods:["Cozy","Funny","Imaginative"],icon:"▤",tone:"rose",description:"A concierge and his lobby boy find themselves in an unusual caper."},
+      {title:"Little Women",year:2019,minutes:135,genres:["Drama","Romance"],moods:["Cozy","Thoughtful","Uplifting"],icon:"❀",tone:"rose",description:"Four sisters grow into their own lives and ambitions."},
+      {title:"Get Out",year:2017,minutes:104,genres:["Thriller","Mystery"],moods:["Tense","Thoughtful"],icon:"◐",tone:"night",description:"A weekend visit takes a disturbing turn in this tense thriller."},
+      {title:"Soul",year:2020,minutes:100,genres:["Animation","Comedy","Drama"],moods:["Thoughtful","Uplifting","Funny"],icon:"♪",tone:"ocean",description:"A musician considers what makes a life feel meaningful."},
+      {title:"Dune: Part Two",year:2024,minutes:166,genres:["Sci-Fi","Adventure"],moods:["Imaginative","Tense"],icon:"⌁",tone:"gold",description:"Paul Atreides joins the Fremen in an epic fight for the desert planet."},
+      {title:"Everything Everywhere All at Once",year:2022,minutes:139,genres:["Sci-Fi","Adventure","Comedy"],moods:["Imaginative","Funny","Thoughtful"],icon:"✺",tone:"sunset",description:"An overwhelmed laundromat owner faces an adventure across universes."},
+      {title:"Hidden Figures",year:2016,minutes:127,genres:["Drama"],moods:["Uplifting","Thoughtful"],icon:"✧",tone:"forest",description:"Three mathematicians make history at NASA in the space race."},
+      {title:"Pride & Prejudice",year:2005,minutes:129,genres:["Romance","Drama"],moods:["Cozy","Thoughtful"],icon:"♡",tone:"rose",description:"Elizabeth Bennet and Mr. Darcy navigate first impressions and affection."},
+      {title:"The Princess Bride",year:1987,minutes:98,genres:["Adventure","Romance","Comedy"],moods:["Cozy","Funny","Imaginative"],icon:"♜",tone:"gold",description:"A storybook adventure with daring escapes, wit, and romance."}
+    ];
+    const selectedGenres = new Set(["Sci-Fi"]);
+    const selectedMoods = new Set(["Imaginative"]);
+    const watched = new Set();
+    let selectedRuntime = "any", hideSeen = false;
+    const genreChoices = document.getElementById("genreChoices");
+    const moodChoices = document.getElementById("moodChoices");
+    const runtimeChoices = document.getElementById("runtimeChoices");
+    const movieGrid = document.getElementById("movieGrid");
+
+    function makeChoice(label, selected, onClick) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "chip";
+      button.textContent = label;
+      button.setAttribute("aria-pressed", String(selected));
+      button.addEventListener("click", onClick);
+      return button;
+    }
+    function drawChoices() {
+      genreChoices.replaceChildren();
+      moodChoices.replaceChildren();
+      genreOptions.forEach(name => genreChoices.append(makeChoice(name, selectedGenres.has(name), () => {
+        selectedGenres.has(name) ? selectedGenres.delete(name) : selectedGenres.add(name);
+        drawChoices();
+      })));
+      moodOptions.forEach(name => moodChoices.append(makeChoice(name, selectedMoods.has(name), () => {
+        selectedMoods.has(name) ? selectedMoods.delete(name) : selectedMoods.add(name);
+        drawChoices();
+      })));
+      runtimeChoices.replaceChildren();
+      runtimeOptions.forEach(option => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = option.label;
+        button.setAttribute("aria-pressed", String(selectedRuntime === option.id));
+        button.addEventListener("click", () => { selectedRuntime = option.id; drawChoices(); });
+        runtimeChoices.append(button);
+      });
+    }
+    function scoreMovie(movie) {
+      const matchedGenres = movie.genres.filter(tag => selectedGenres.has(tag));
+      const matchedMoods = movie.moods.filter(tag => selectedMoods.has(tag));
+      return { score:matchedGenres.length * 3 + matchedMoods.length * 2, matchedGenres, matchedMoods };
+    }
+    function addText(parent, tag, className, text) {
+      const element = document.createElement(tag);
+      if (className) element.className = className;
+      element.textContent = text;
+      parent.append(element);
+      return element;
+    }
+    function renderMovies() {
+      const candidates = movies.map(movie => ({movie, ...scoreMovie(movie)}))
+        .filter(item => (!hideSeen || !watched.has(item.movie.title)) &&
+          (selectedRuntime === "any" || (selectedRuntime === "short" ? item.movie.minutes < 120 : item.movie.minutes >= 120)) &&
+          (selectedGenres.size + selectedMoods.size === 0 || item.score > 0))
+        .sort((a,b) => b.score - a.score || a.movie.title.localeCompare(b.movie.title));
+      const summary = selectedGenres.size + selectedMoods.size === 0
+        ? "A mix from the collection, ready to explore."
+        : `Ranked by your ${selectedGenres.size + selectedMoods.size} selected preference${selectedGenres.size + selectedMoods.size === 1 ? "" : "s"}.`;
+      document.getElementById("resultSummary").textContent = `${candidates.length} film${candidates.length === 1 ? "" : "s"} · ${summary}`;
+      document.getElementById("hideSeen").setAttribute("aria-pressed", String(hideSeen));
+      movieGrid.replaceChildren();
+      if (!candidates.length) {
+        const empty = document.createElement("div");
+        empty.className = "empty";
+        addText(empty,"b","","No films fit those filters yet.");
+        addText(empty,"span","","Try a different runtime or remove a preference to widen your picks.");
+        movieGrid.append(empty);
+        return;
+      }
+      candidates.forEach(({movie,score,matchedGenres,matchedMoods}) => {
+        const card = document.createElement("article");
+        card.className = "movie";
+        const poster = document.createElement("div");
+        poster.className = `poster tone-${movie.tone}`;
+        addText(poster,"span","poster-icon",movie.icon);
+        addText(poster,"span","poster-label",movie.genres[0]);
+        card.append(poster);
+        const info = document.createElement("div");
+        info.className = "movie-info";
+        const titleRow = document.createElement("div");
+        titleRow.className = "movie-title-row";
+        addText(titleRow,"h3","",movie.title);
+        addText(titleRow,"span","movie-meta",`${movie.year} · ${movie.minutes} min`);
+        info.append(titleRow);
+        addText(info,"p","reason",movie.description);
+        const tags = document.createElement("div");
+        tags.className = "tags";
+        [...movie.genres.slice(0,2), ...movie.moods.filter(mood => selectedMoods.has(mood)).slice(0,1)].forEach(tag => addText(tags,"span","tag",tag));
+        info.append(tags);
+        const bottom = document.createElement("div");
+        bottom.className = "card-bottom";
+        const reasons = [...matchedGenres, ...matchedMoods.map(mood => mood.toLowerCase())];
+        addText(bottom,"span","match",reasons.length ? `✦ MATCH: ${reasons.join(" · ")}` : "✦ A MIXED PICK");
+        const seenButton = document.createElement("button");
+        seenButton.type = "button";
+        seenButton.className = "watched";
+        seenButton.textContent = watched.has(movie.title) ? "✓ Seen" : "+ Mark seen";
+        seenButton.setAttribute("aria-label", `${watched.has(movie.title) ? "Unmark" : "Mark"} ${movie.title} as seen`);
+        seenButton.addEventListener("click", () => {
+          watched.has(movie.title) ? watched.delete(movie.title) : watched.add(movie.title);
+          renderMovies();
+        });
+        bottom.append(seenButton);
+        info.append(bottom);
+        card.append(info);
+        movieGrid.append(card);
+      });
+    }
+    document.getElementById("findButton").addEventListener("click", renderMovies);
+    document.getElementById("hideSeen").addEventListener("click", () => { hideSeen = !hideSeen; renderMovies(); });
+    drawChoices();
+    renderMovies();
+  </script>
+</body>
+</html>
