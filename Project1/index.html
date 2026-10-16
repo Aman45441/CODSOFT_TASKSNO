@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4f3ee">
+  <title>Tic-Tac-Toe — Human vs AI</title>
+  <style>
+    :root { color-scheme: light; --paper:#f4f3ee; --ink:#20271f; --muted:#72786e; --line:#d9ddd3; --green:#355d45; --lime:#d7eb93; --white:#fffefa; --shadow:0 18px 55px #25322012; }
+    * { box-sizing:border-box }
+    body { margin:0; min-height:100vh; background:var(--paper); color:var(--ink); font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; display:grid; place-items:center; padding:32px 18px; }
+    button { font:inherit }
+    .page { width:min(100%,960px); display:grid; grid-template-columns:minmax(0,1.12fr) minmax(300px,.88fr); gap:clamp(32px,7vw,88px); align-items:center; }
+    .eyebrow { display:flex; align-items:center; gap:9px; color:var(--green); font-size:12px; font-weight:750; letter-spacing:.14em; text-transform:uppercase; }
+    .eyebrow::before { content:""; width:24px; height:2px; background:var(--green); }
+    h1 { font-size:clamp(46px,7vw,76px); line-height:.98; letter-spacing:-.065em; margin:20px 0 16px; font-weight:760; }
+    h1 span { color:var(--green) }
+    .intro { color:var(--muted); max-width:420px; font-size:16px; line-height:1.65; margin:0 0 32px; }
+    .game-card { background:var(--white); border:1px solid #e7e8e1; border-radius:24px; box-shadow:var(--shadow); padding:clamp(20px,4vw,30px); }
+    .game-top { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:22px; }
+    .turn-label { display:flex; align-items:center; gap:10px; font-weight:650; font-size:14px; }
+    .turn-dot { width:9px; height:9px; border-radius:50%; background:#86a956; box-shadow:0 0 0 4px #86a95620; }
+    .turn-dot.thinking { background:#d0a744; box-shadow:0 0 0 4px #d0a74420; }
+    .round-label { color:var(--muted); font-size:12px; }
+    .board { display:grid; grid-template-columns:repeat(3,1fr); gap:9px; aspect-ratio:1; }
+    .cell { border:1px solid var(--line); border-radius:15px; background:#f8f8f3; color:var(--green); cursor:pointer; font-weight:760; font-size:clamp(42px,9vw,72px); line-height:1; display:grid; place-items:center; transition:background .16s,transform .16s,border-color .16s; }
+    .cell:hover:enabled { background:#eef1e6; border-color:#b7c3ae; transform:translateY(-2px); }
+    .cell:focus-visible,.reset:focus-visible { outline:3px solid #89a960; outline-offset:3px; }
+    .cell:disabled { cursor:default; }
+    .cell.o { color:#b17b37; }
+    .cell.win { background:#e8f0d2; border-color:#a9bc76; }
+    .game-bottom { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-top:20px; }
+    .score { display:flex; gap:17px; color:var(--muted); font-size:12px; }
+    .score strong { color:var(--ink); margin-left:4px; }
+    .reset { border:0; border-radius:999px; padding:10px 16px; background:var(--green); color:white; font-size:13px; font-weight:650; cursor:pointer; transition:background .16s,transform .16s; }
+    .reset:hover { background:#294936; transform:translateY(-1px); }
+    .how { margin-top:24px; padding-top:19px; border-top:1px solid var(--line); display:grid; grid-template-columns:1fr 1fr; gap:13px; }
+    .how-item { display:flex; align-items:flex-start; gap:10px; }
+    .mini { flex:none; width:26px; height:26px; border-radius:8px; display:grid; place-items:center; background:#edf0e6; color:var(--green); font-size:12px; font-weight:750; }
+    .how-item strong { display:block; font-size:12px; margin:1px 0 3px; }
+    .how-item small { color:var(--muted); font-size:11px; line-height:1.45; display:block; }
+    footer { grid-column:1/-1; color:#8a8f84; font-size:11px; letter-spacing:.04em; margin-top:4px; }
+    @media (max-width:720px) { body { padding:36px 18px; } .page { max-width:460px; grid-template-columns:1fr; gap:24px; } h1 { font-size:clamp(52px,12vw,70px); margin:15px 0 12px; } .intro { margin-bottom:0; } footer { grid-column:auto; } }
+    @media (prefers-reduced-motion:reduce) { *,*::before,*::after { scroll-behavior:auto!important; transition:none!important; } }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section aria-labelledby="title">
+      <div class="eyebrow">A little strategy game</div>
+      <h1 id="title">Think.<br><span>Then mark.</span></h1>
+      <p class="intro">A familiar game with an AI that thinks ahead. Can you find a way to win—or will you settle for a draw?</p>
+      <div class="how" aria-label="How to play">
+        <div class="how-item"><span class="mini">01</span><div><strong>You play X</strong><small>Choose any open square to start.</small></div></div>
+        <div class="how-item"><span class="mini">02</span><div><strong>AI plays O</strong><small>It plans with Minimax search.</small></div></div>
+        <div class="how-item"><span class="mini">03</span><div><strong>Get three in a row</strong><small>Across, down, or diagonally.</small></div></div>
+        <div class="how-item"><span class="mini">04</span><div><strong>Play again</strong><small>Reset the board for another round.</small></div></div>
+      </div>
+    </section>
+
+    <section class="game-card" aria-label="Tic-Tac-Toe game">
+      <div class="game-top"><div class="turn-label" aria-live="polite"><span id="turnDot" class="turn-dot"></span><span id="status">Your turn — choose a square</span></div><span class="round-label" id="round">ROUND 1</span></div>
+      <div class="board" id="board" role="group" aria-label="Game board"></div>
+      <div class="game-bottom"><div class="score" aria-label="Score"><span>You <strong id="humanScore">0</strong></span><span>AI <strong id="aiScore">0</strong></span><span>Draws <strong id="drawScore">0</strong></span></div><button class="reset" id="reset">New game <span aria-hidden="true">↗</span></button></div>
+    </section>
+    <footer>BUILT WITH MINIMAX + ALPHA-BETA PRUNING</footer>
+  </main>
+  <script>
+    "use strict";
+    const HUMAN = "X", AI = "O";
+    const winningLines = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+    let board = Array(9).fill(null), gameOver = false, round = 1;
+    const scores = { human:0, ai:0, draw:0 };
+    const boardElement = document.getElementById("board");
+    const statusElement = document.getElementById("status");
+    const turnDot = document.getElementById("turnDot");
+
+    function getWinner(state) {
+      for (const line of winningLines) {
+        const [a,b,c] = line;
+        if (state[a] && state[a] === state[b] && state[a] === state[c]) return { player:state[a], line };
+      }
+      return null;
+    }
+
+    // Minimax explores every possible continuation. Alpha-beta pruning skips
+    // branches that cannot change the final choice. Scores prefer faster wins.
+    function minimax(state, isMaximizing, depth, alpha, beta) {
+      const winner = getWinner(state);
+      if (winner) return winner.player === AI ? 10 - depth : depth - 10;
+      if (state.every(Boolean)) return 0;
+      if (isMaximizing) {
+        let best = -Infinity;
+        for (let i = 0; i < state.length; i++) if (!state[i]) {
+          state[i] = AI;
+          best = Math.max(best, minimax(state, false, depth + 1, alpha, beta));
+          state[i] = null;
+          alpha = Math.max(alpha, best);
+          if (beta <= alpha) break;
+        }
+        return best;
+      }
+      let best = Infinity;
+      for (let i = 0; i < state.length; i++) if (!state[i]) {
+        state[i] = HUMAN;
+        best = Math.min(best, minimax(state, true, depth + 1, alpha, beta));
+        state[i] = null;
+        beta = Math.min(beta, best);
+        if (beta <= alpha) break;
+      }
+      return best;
+    }
+
+    function bestAiMove() {
+      let bestScore = -Infinity, move = -1;
+      for (let i = 0; i < board.length; i++) if (!board[i]) {
+        board[i] = AI;
+        const score = minimax(board, false, 0, -Infinity, Infinity);
+        board[i] = null;
+        if (score > bestScore) { bestScore = score; move = i; }
+      }
+      return move;
+    }
+
+    function render(winningLine = []) {
+      boardElement.replaceChildren();
+      board.forEach((mark, index) => {
+        const cell = document.createElement("button");
+        cell.type = "button";
+        cell.className = `cell${mark === AI ? " o" : ""}${winningLine.includes(index) ? " win" : ""}`;
+        cell.textContent = mark || "";
+        cell.disabled = Boolean(mark) || gameOver;
+        cell.setAttribute("aria-label", `Row ${Math.floor(index / 3) + 1}, column ${index % 3 + 1}${mark ? `, ${mark}` : ", empty"}`);
+        cell.addEventListener("click", () => playHuman(index));
+        boardElement.append(cell);
+      });
+      document.getElementById("humanScore").textContent = scores.human;
+      document.getElementById("aiScore").textContent = scores.ai;
+      document.getElementById("drawScore").textContent = scores.draw;
+      document.getElementById("round").textContent = `ROUND ${round}`;
+    }
+
+    function finishRound(winner) {
+      gameOver = true;
+      turnDot.classList.remove("thinking");
+      if (winner) {
+        const outcome = winner.player === HUMAN ? "You win! Nice move." : "The AI wins this round.";
+        statusElement.textContent = outcome;
+        if (winner.player === HUMAN) scores.human++; else scores.ai++;
+        render(winner.line);
+      } else {
+        statusElement.textContent = "It's a draw. Well played.";
+        scores.draw++;
+        render();
+      }
+    }
+
+    function playHuman(index) {
+      if (gameOver || board[index]) return;
+      board[index] = HUMAN;
+      const humanWin = getWinner(board);
+      if (humanWin) return finishRound(humanWin);
+      if (board.every(Boolean)) return finishRound(null);
+      statusElement.textContent = "AI is thinking…";
+      turnDot.classList.add("thinking");
+      render();
+      window.setTimeout(() => {
+        const move = bestAiMove();
+        if (move !== -1) board[move] = AI;
+        const aiWin = getWinner(board);
+        if (aiWin) return finishRound(aiWin);
+        if (board.every(Boolean)) return finishRound(null);
+        turnDot.classList.remove("thinking");
+        statusElement.textContent = "Your turn — choose a square";
+        render();
+      }, 320);
+    }
+
+    function newGame() {
+      board = Array(9).fill(null);
+      gameOver = false;
+      round++;
+      turnDot.classList.remove("thinking");
+      statusElement.textContent = "Your turn — choose a square";
+      render();
+      boardElement.querySelector("button").focus();
+    }
+
+    document.getElementById("reset").addEventListener("click", newGame);
+    render();
+  </script>
+</body>
+</html>
