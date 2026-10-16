@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#171629">
+  <title>Milo — Rule-Based Chatbot</title>
+  <style>
+    :root { color-scheme:dark; --ink:#f6f3ff; --muted:#aba8c4; --line:#38364f; --violet:#a78bfa; --coral:#ff8f9c; --panel:#1c1b30; --shadow:0 28px 90px #09081488; }
+    * { box-sizing:border-box }
+    body { margin:0; min-height:100vh; background:radial-gradient(ellipse at 15% 15%,#353063 0,transparent 37%),radial-gradient(ellipse at 95% 80%,#4b2848 0,transparent 34%),#131221; color:var(--ink); font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; display:grid; place-items:center; padding:28px 22px; }
+    button,input { font:inherit }
+    .layout { width:min(100%,1120px); display:grid; grid-template-columns:minmax(0,1.55fr) minmax(270px,.75fr); grid-template-areas:"chat info"; gap:22px; align-items:stretch; }
+    .info-panel { grid-area:info; align-self:center; padding:20px 12px 20px 16px; }
+    .eyebrow { display:flex; align-items:center; gap:9px; color:#c8b9ff; font-size:11px; font-weight:750; letter-spacing:.14em; text-transform:uppercase; }
+    .eyebrow::before { content:""; width:22px; height:2px; background:var(--coral); }
+    h1 { margin:20px 0 15px; font-size:clamp(44px,6vw,68px); line-height:.98; letter-spacing:-.065em; font-weight:760; }
+    h1 span { color:#ba9eff }
+    .intro { margin:0; max-width:360px; color:#c0bdd2; font-size:15px; line-height:1.7; }
+    .intent-list { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:24px; }
+    .intent-list span { border:1px solid #ffffff18; background:#ffffff08; border-radius:10px; padding:9px 11px; color:#e1dcf5; font-size:11px; }
+    .note { margin-top:22px; padding:13px; display:flex; gap:10px; align-items:flex-start; color:#b4b0c8; font-size:11px; line-height:1.55; border-left:2px solid var(--coral); background:#ffffff08; border-radius:0 10px 10px 0; max-width:350px; }
+    .note b { color:#ffabb4; font-weight:700; white-space:nowrap; }
+    .chat { grid-area:chat; overflow:hidden; display:flex; flex-direction:column; height:min(720px,calc(100vh - 56px)); min-height:550px; background:var(--panel); border:1px solid #ffffff19; border-radius:22px; box-shadow:var(--shadow); }
+    .chat-head { padding:18px 21px; border-bottom:1px solid #ffffff12; display:flex; justify-content:space-between; align-items:center; background:linear-gradient(110deg,#27243f,#211d36); }
+    .bot-id { display:flex; align-items:center; gap:11px; }
+    .avatar { width:41px; height:41px; display:grid; place-items:center; border-radius:14px; background:linear-gradient(145deg,#bd9eff,#8063df); color:#21183a; font-size:19px; box-shadow:0 6px 22px #a78bfa33; }
+    .bot-name { font-size:14px; font-weight:730; }
+    .online { display:flex; align-items:center; gap:6px; margin-top:3px; color:#b4b0c8; font-size:11px; }
+    .online::before { content:""; width:6px; height:6px; border-radius:50%; background:#7be0ba; box-shadow:0 0 9px #7be0ba88; }
+    .clear { border:1px solid #ffffff20; background:#ffffff08; border-radius:9px; color:#c5c1d8; cursor:pointer; padding:8px 10px; font-size:11px; }
+    .clear:hover { color:white; background:#ffffff16; }
+    .messages { flex:1; overflow-y:auto; padding:22px 20px 14px; display:flex; flex-direction:column; gap:15px; }
+    .message { max-width:84%; display:flex; flex-direction:column; gap:4px; animation:pop .2s ease-out; }
+    @keyframes pop { from { opacity:0; transform:translateY(5px) } to { opacity:1; transform:translateY(0) } }
+    .message.bot { align-self:flex-start; }
+    .message.user { align-self:flex-end; align-items:flex-end; }
+    .bubble { padding:11px 14px; border-radius:16px; font-size:13px; line-height:1.55; white-space:pre-wrap; overflow-wrap:anywhere; }
+    .bot .bubble { background:#302e48; color:#f3f0ff; border:1px solid #ffffff0b; border-bottom-left-radius:5px; }
+    .user .bubble { background:linear-gradient(125deg,#8667e8,#ba70cf); color:white; border-bottom-right-radius:5px; }
+    .time { padding:0 4px; font-size:10px; color:#88859e; }
+    .suggestions { padding:0 20px 15px; display:flex; flex-wrap:wrap; gap:8px; }
+    .suggestion { border:1px solid #8271be66; background:#a78bfa0d; border-radius:9px; padding:8px 10px; color:#d3c5ff; font-size:11px; cursor:pointer; transition:background .15s,border-color .15s; }
+    .suggestion:hover { background:#a78bfa22; border-color:#a78bfa; }
+    .composer { padding:14px 16px 17px; border-top:1px solid #ffffff12; display:flex; gap:9px; align-items:center; background:#191829; }
+    .composer input { flex:1; min-width:0; border:1px solid #ffffff1c; border-radius:12px; padding:13px 14px; background:#232238; outline:none; color:var(--ink); font-size:13px; }
+    .composer input:focus { border-color:#a78bfa; box-shadow:0 0 0 3px #a78bfa22; }
+    .composer input::placeholder { color:#8e8aa5; }
+    .send { width:44px; height:44px; flex:none; border:0; border-radius:12px; background:linear-gradient(145deg,#ff9aa8,#ee79ba); color:#361d3b; font-size:20px; font-weight:750; cursor:pointer; transition:filter .15s,transform .15s; }
+    .send:hover { filter:brightness(1.08); transform:translateY(-1px); }
+    .send:focus-visible,.clear:focus-visible,.suggestion:focus-visible { outline:3px solid #c9b4ff; outline-offset:2px; }
+    @media (max-width:760px) { body { padding:16px 13px; } .layout { width:min(100%,550px); grid-template-columns:1fr; grid-template-areas:"info" "chat"; gap:10px; } .info-panel { padding:5px 4px 10px; } h1 { margin:10px 0 8px; font-size:44px; } .intro { max-width:500px; font-size:13px; } .intent-list,.note { display:none; } .chat { height:min(680px,calc(100vh - 130px)); min-height:470px; } }
+    @media (prefers-reduced-motion:reduce) { *,*::before,*::after { scroll-behavior:auto!important; animation-duration:.01ms!important; transition:none!important; } }
+  </style>
+</head>
+<body>
+  <main class="layout">
+    <section class="info-panel" aria-labelledby="title">
+      <div class="eyebrow">A simple conversational demo</div>
+      <h1 id="title">Say hello<br>to <span>Milo.</span></h1>
+      <p class="intro">Milo is a friendly little chatbot that matches your message to a set of simple rules, then replies with a ready-made response.</p>
+      <div class="intent-list" aria-label="Topics Milo understands"><span>greetings</span><span>name</span><span>time &amp; date</span><span>jokes</span><span>study tips</span><span>goodbyes</span></div>
+      <p class="note"><b>How it works</b><span>Milo checks your words for familiar patterns. Try “hello”, “what time is it?”, or “tell me a joke”.</span></p>
+    </section>
+
+    <section class="chat" aria-label="Chat with Milo">
+      <header class="chat-head">
+        <div class="bot-id"><div class="avatar" aria-hidden="true">✳</div><div><div class="bot-name">Milo</div><div class="online">Ready to chat</div></div></div>
+        <button type="button" class="clear" id="clear">Clear chat</button>
+      </header>
+      <div class="messages" id="messages" role="log" aria-live="polite" aria-relevant="additions"></div>
+      <div class="suggestions" aria-label="Try asking">
+        <button class="suggestion" type="button" data-message="Hello!">Say hello</button>
+        <button class="suggestion" type="button" data-message="What time is it?">Ask the time</button>
+        <button class="suggestion" type="button" data-message="Tell me a joke">Tell me a joke</button>
+        <button class="suggestion" type="button" data-message="Give me a study tip">Study tip</button>
+      </div>
+      <form class="composer" id="chatForm">
+        <input id="userInput" type="text" autocomplete="off" maxlength="300" placeholder="Write a message…" aria-label="Your message">
+        <button class="send" type="submit" aria-label="Send message">↑</button>
+      </form>
+    </section>
+  </main>
+  <script>
+    "use strict";
+    const messages = document.getElementById("messages");
+    const input = document.getElementById("userInput");
+
+    function addMessage(text, sender) {
+      const row = document.createElement("div");
+      row.className = `message ${sender}`;
+      const bubble = document.createElement("div");
+      bubble.className = "bubble";
+      bubble.textContent = text;
+      const time = document.createElement("span");
+      time.className = "time";
+      time.textContent = new Intl.DateTimeFormat(undefined, { hour:"numeric", minute:"2-digit" }).format(new Date());
+      row.append(bubble, time);
+      messages.append(row);
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    // Normalize punctuation and letter case before matching a message to an intent.
+    function normalize(text) {
+      return text.toLowerCase().trim().replace(/[’']/g, "'").replace(/[^a-z0-9\s']/g, " ").replace(/\s+/g, " ");
+    }
+
+    // Rule order matters: more specific patterns are checked before broad ones.
+    function getResponse(message) {
+      const text = normalize(message);
+      const has = (...patterns) => patterns.some(pattern => pattern.test(text));
+
+      if (!text) return "Type a message and I’ll do my best to help.";
+      if (has(/\b(hello|hi|hey|howdy|good morning|good afternoon|good evening)\b/))
+        return "Hi there! 😊 What would you like to chat about?";
+      if (has(/\b(what is your name|who are you|your name)\b/))
+        return "I’m Milo, a small rule-based chatbot. Nice to meet you!";
+      if (has(/\b(what time|current time|time is it)\b/))
+        return `It’s ${new Intl.DateTimeFormat(undefined, { hour:"numeric", minute:"2-digit" }).format(new Date())} where you are.`;
+      if (has(/\b(what date|today's date|todays date|what day)\b/))
+        return `Today is ${new Intl.DateTimeFormat(undefined, { weekday:"long", year:"numeric", month:"long", day:"numeric" }).format(new Date())}.`;
+      if (has(/\b(joke|make me laugh|funny)\b/))
+        return "Why did the computer go to the doctor? It caught a virus! 😄";
+      if (has(/\b(study tip|study advice|how to study|focus)\b/))
+        return "Try a 25-minute focus session, then take a short break. Pick one small goal before you start—it makes it easier to begin.";
+      if (has(/\b(help|what can you do|options)\b/))
+        return "I can chat about greetings, tell you the time or date, share a joke, or offer a study tip. Try one of the buttons below!";
+      if (has(/\b(thank you|thanks|thx)\b/))
+        return "You’re welcome! Happy to help. 🌿";
+      if (has(/\b(bye|goodbye|see you|see ya|good night)\b/))
+        return "Bye for now! It was nice chatting with you. 👋";
+      if (has(/\b(how are you|how's it going|hows it going)\b/))
+        return "I’m doing well, thanks for asking! What’s on your mind?";
+      return "I’m not sure I understood that one yet. Try asking for the time, a joke, a study tip, or type “help” to see what I know.";
+    }
+
+    function sendMessage(text) {
+      const message = text.trim();
+      if (!message) return;
+      addMessage(message, "user");
+      input.value = "";
+      window.setTimeout(() => addMessage(getResponse(message), "bot"), 220);
+      input.focus();
+    }
+
+    document.getElementById("chatForm").addEventListener("submit", event => {
+      event.preventDefault();
+      sendMessage(input.value);
+    });
+    document.querySelectorAll(".suggestion").forEach(button => {
+      button.addEventListener("click", () => sendMessage(button.dataset.message));
+    });
+    document.getElementById("clear").addEventListener("click", () => {
+      messages.replaceChildren();
+      addMessage("Hi! I’m Milo. Ask me for the time, a joke, or a study tip—or just say hello. 😊", "bot");
+      input.focus();
+    });
+    addMessage("Hi! I’m Milo. Ask me for the time, a joke, or a study tip—or just say hello. 😊", "bot");
+  </script>
+</body>
+</html>
